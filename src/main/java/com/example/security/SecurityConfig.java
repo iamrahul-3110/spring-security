@@ -1,5 +1,6 @@
 package com.example.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -13,12 +14,19 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.sql.DataSource;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity // this annotation enables method-level security, allowing the use of annotations like @PreAuthorize on methods to enforce security constraints.
 public class SecurityConfig {
+
+    @Autowired
+    DataSource dataSource; // springboot will autoconfigure the datasource bean using the properties defined in application.properties file.
+
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable); // this line disables CSRF (Cross-Site Request Forgery) protection for the application.
@@ -44,8 +52,16 @@ public class SecurityConfig {
                 .password("{noop}adminPass") // {noop} is used to indicate that no password encoding is applied.
                 .roles("ADMIN")
                 .build();
-        return new InMemoryUserDetailsManager( // InMemoryUserDetailsManager is an implementation of UserDetailsService that stores user details in memory.
-                user1, admin // these are not persist and will be lost when the application restarts.
-        );
+
+        // using jdbc user details manager to persist users in database instead of in memory.
+        JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager(dataSource);
+        userDetailsManager.createUser(user1);
+        userDetailsManager.createUser(admin);
+        return userDetailsManager;
+
+        // below used in case of in memory user details manager
+//        return new InMemoryUserDetailsManager( // InMemoryUserDetailsManager is an implementation of UserDetailsService that stores user details in memory.
+//                user1, admin // these are not persist and will be lost when the application restarts.
+//        );
     }
 }
