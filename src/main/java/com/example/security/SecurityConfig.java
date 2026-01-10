@@ -13,6 +13,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
@@ -45,11 +47,11 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() { // this bean is responsible for retrieving user-related data for authentication and authorization.
         UserDetails user1 = User.withUsername("user1")
-                .password("{noop}password") // {noop} is used to indicate that no password encoding is applied.
+                .password(passwordEncoder().encode("password")) // {noop} is used to indicate that no password encoding is applied.
                 .roles("USER")
                 .build();
         UserDetails admin = User.withUsername("admin")
-                .password("{noop}adminPass") // {noop} is used to indicate that no password encoding is applied.
+                .password(passwordEncoder().encode("adminPass")) // currently passwords are in plain text which is not recommended for production use. we use password encoders for that.
                 .roles("ADMIN")
                 .build();
 
@@ -63,5 +65,9 @@ public class SecurityConfig {
 //        return new InMemoryUserDetailsManager( // InMemoryUserDetailsManager is an implementation of UserDetailsService that stores user details in memory.
 //                user1, admin // these are not persist and will be lost when the application restarts.
 //        );
+    }
+
+    public PasswordEncoder passwordEncoder () {
+        return new BCryptPasswordEncoder(); // automatically provide salt and use strong hashing algorithm to encode the password.
     }
 }
