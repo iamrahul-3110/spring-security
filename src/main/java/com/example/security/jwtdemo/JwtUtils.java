@@ -49,9 +49,9 @@ public class JwtUtils {
     public String getUsernameFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith((SecretKey) key()) // verifying the JWT's signature using the generated signing key.
-                .build()// used to create a JwtParser instance with the specified signing key for verifying the JWT's signature.
+                .build() // used to create a JwtParser instance with the specified signing key for verifying the JWT's signature.
                 .parseSignedClaims(token) // parses the signed JWT token and retrieves the claims.
-                .getPayload()// retrieves the payload (claims) from the parsed JWT.
+                .getPayload() // retrieves the payload (claims) from the parsed JWT.
                 .getSubject(); // extracts the subject (username) from the claims.
     }
 
@@ -63,7 +63,7 @@ public class JwtUtils {
     }
 
     // Validating JWT token
-    public boolean ValidateJwtToken(String token) {
+    public boolean validateJwtToken(String token) {
         try {
             System.out.println("Validating token: " + token);
             Jwts.parser()
