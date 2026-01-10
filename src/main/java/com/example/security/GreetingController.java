@@ -27,7 +27,7 @@ import java.util.Map;
 public class GreetingController {
 
     @Autowired
-    private AuthenticationManager authenticationManager;
+    private AuthenticationManager authenticationManager; // need to expose somewhere check Security config
 
     @Autowired
     private JwtUtils jwtUtils;
