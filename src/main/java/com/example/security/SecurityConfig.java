@@ -3,6 +3,7 @@ package com.example.security;
 import com.example.security.jwtdemo.JwtAuthEntryPoint;
 import com.example.security.jwtdemo.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,10 +25,12 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.sql.DataSource;
+import javax.xml.crypto.Data;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // this annotation enables method-level security, allowing the use of annotations like @PreAuthorize on methods to enforce security constraints.
+@EnableMethodSecurity
+// this annotation enables method-level security, allowing the use of annotations like @PreAuthorize on methods to enforce security constraints.
 public class SecurityConfig {
 
     @Autowired
@@ -37,7 +40,7 @@ public class SecurityConfig {
     private JwtAuthEntryPoint unauthorizeHandler;
 
     @Bean
-    public JwtAuthFilter authenticationJwtTokenFilter () {
+    public JwtAuthFilter authenticationJwtTokenFilter() {
         return new JwtAuthFilter();
     }
 
@@ -47,8 +50,8 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests((requests) ->
                 requests.requestMatchers("/h2-console/**").permitAll() // this line allows unrestricted access to the H2 database console.
-                        .requestMatchers("/api/signing").permitAll() // allowing for any request for signing
-                .anyRequest().authenticated());
+                        .requestMatchers("/signing").permitAll() // allowing for any request for signing
+                        .anyRequest().authenticated());
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // this line configures the session management policy to be stateless.
 //        http.formLogin(Customizer.withDefaults()); // this is form based authentication which have payload of features like login page, logout, remember me, etc.
         // currently this is not stateless application as we are using basic authentication. because this have jsessionid to maintain the session.
@@ -67,21 +70,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() { // this bean is responsible for retrieving user-related data for authentication and authorization.
-        UserDetails user1 = User.withUsername("user1")
-                .password(passwordEncoder().encode("password")) // {noop} is used to indicate that no password encoding is applied.
-                .roles("USER")
-                .build();
-        UserDetails admin = User.withUsername("admin")
-                .password(passwordEncoder().encode("adminPass")) // currently passwords are in plain text which is not recommended for production use. we use password encoders for that.
-                .roles("ADMIN")
-                .build();
+    public UserDetailsService userDetailsService(DataSource dataSource) { // this bean is responsible for retrieving user-related data for authentication and authorization.
 
-        // using jdbc user details manager to persist users in database instead of in memory.
-        JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager(dataSource);
-        userDetailsManager.createUser(user1);
-        userDetailsManager.createUser(admin);
-        return userDetailsManager;
+        return new JdbcUserDetailsManager(dataSource);
 
         // below used in case of in memory user details manager
 //        return new InMemoryUserDetailsManager( // InMemoryUserDetailsManager is an implementation of UserDetailsService that stores user details in memory.
@@ -89,12 +80,34 @@ public class SecurityConfig {
 //        );
     }
 
-    public PasswordEncoder passwordEncoder () {
+    // user creation part separated from above ---
+    @Bean
+    public CommandLineRunner initData(UserDetailsService userDetailsService) {
+        return args -> {
+            JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
+            UserDetails user1 = User.withUsername("user")
+                    .password(passwordEncoder().encode("password")) // {noop} is used to indicate that no password encoding is applied.
+                    .roles("USER")
+                    .build();
+            UserDetails admin = User.withUsername("admin")
+                    .password(passwordEncoder().encode("adminPass")) // currently passwords are in plain text which is not recommended for production use. we use password encoders for that.
+                    .roles("ADMIN")
+                    .build();
+
+            // using jdbc user details manager to persist users in database instead of in memory.
+            JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager(dataSource);
+            userDetailsManager.createUser(user1);
+            userDetailsManager.createUser(admin);
+        };
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(); // automatically provide salt and use strong hashing algorithm to encode the password.
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration builder) throws Exception{
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration builder) throws Exception {
         return builder.getAuthenticationManager();
     }
 }

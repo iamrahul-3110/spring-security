@@ -35,7 +35,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         logger.debug("Authenticating request: {} {}", request.getMethod(), request.getRequestURI());
 
+                String path = request.getServletPath();
+
+                // Skip JWT validation for authentication endpoints
+                if ("/signing".equals(path)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
         try{
+
             String jwt = parseJwt(request); // extracting JWT from the request headers.
             if(jwt != null && jwtUtils.validateJwtToken(jwt)) { // validating the extracted JWT.
                 String username = jwtUtils.getUsernameFromJwtToken(jwt); // extracting username from the valid JWT.
